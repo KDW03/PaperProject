@@ -11,9 +11,9 @@ consumer = KafkaConsumer(
 )
 
 # MongoDB 연결
-client = MongoClient('39.127.90.220', 27017)
+client = MongoClient('10.100.54.132', 27017)
 db = client['TestAPI']
-mycollection = db['try1']
+mycollection = db['try2']
 
 # 카프카에서 데이터를 가져와서 MongoDB에 저장
 for message in consumer:
