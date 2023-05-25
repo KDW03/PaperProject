@@ -14,12 +14,11 @@ KAFKA_TOPIC = 'testApi4'
 API_BASE_URL = "https://open.kci.go.kr/po/openapi/openApiSearch.kci"
 API_CODE = "articleSearch"
 API_KEY = "31446398"
-API_TITLE = "컴퓨터"
 API_DISPLAY_COUNT = 100
 
 # 논문 데이터 API 주소 생성 함수
-def generate_api_url(page):
-    return f"{API_BASE_URL}?apiCode={API_CODE}&key={API_KEY}&title={API_TITLE}&displayCount={API_DISPLAY_COUNT}&page={page}"
+def generate_api_url(title, page):
+    return f"{API_BASE_URL}?apiCode={API_CODE}&key={API_KEY}&title={title}&displayCount={API_DISPLAY_COUNT}&page={page}"
 
 # process_api_response로 처리한 데이터를 카프카에 전송하는 함수
 def send_data_to_kafka(data):
@@ -46,32 +45,35 @@ def process_api_response(api_response):
             print(author_name)
             send_data_to_kafka({'author': author_name})
 
-
 # Kafka producer 객체
 producer = KafkaProducer(bootstrap_servers=KAFKA_SERVER, value_serializer=lambda x: json.dumps(x).encode('utf-8'))
 
 try:
-    # 최초의 API 요청을 보내서 전체 아이템 개수를 얻음
-    response = requests.get(generate_api_url(1))
-    if response.status_code == 200:
-        process_api_response(response)
+    # Title 배열
+    titles = ['컴퓨터', '데이터', '인공지능']
 
-        # Pagination 처리를 위한 추가 작업
-        content = response.content
-        dict_type = xmltodict.parse(content)
-        metadata = dict_type['MetaData']
-        total_items = int(metadata['outputData']['result']['total'])
-        max_pages = math.ceil(total_items / API_DISPLAY_COUNT)
-        print(max_pages)
+    for title in titles:
+        # 최초의 API 요청을 보내서 전체 아이템 개수를 얻음
+        response = requests.get(generate_api_url(title, 1))
+        if response.status_code == 200:
+            process_api_response(response)
 
-        # 각 페이지에 대해 API 요청 반복
-        for page in range(2, max_pages + 1):
-            response = requests.get(generate_api_url(page))
-            if response.status_code == 200:
-                process_api_response(response)
-            else:
-                print(f"API request failed for page {page}.")
-    else:
-        print("API request failed.")
+            # Pagination 처리를 위한 추가 작업
+            content = response.content
+            dict_type = xmltodict.parse(content)
+            metadata = dict_type['MetaData']
+            total_items = int(metadata['outputData']['result']['total'])
+            max_pages = math.ceil(total_items / API_DISPLAY_COUNT)
+            print(max_pages)
+
+            # 각 페이지에 대해 API 요청 반복
+            for page in range(2, max_pages + 1):
+                response = requests.get(generate_api_url(title, page))
+                if response.status_code == 200:
+                    process_api_response(response)
+                else:
+                    print(f"API request failed for page {page}.")
+        else:
+            print("API request failed.")
 except requests.exceptions.RequestException as e:
     print("Error occurred during API request:", str(e))
