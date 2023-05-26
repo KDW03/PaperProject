@@ -36,14 +36,22 @@ def process_api_response(api_response):
     record_list = outputData.get('record', [])
 
     for record in record_list:
-        article_info = record['articleInfo']
-        author_group = article_info['author-group']
+        author_group = record['articleInfo'].get('author-group', {})
+
+        if author_group is None:
+            continue
+
         authors = author_group.get('author', [])
 
-        for author in authors:
-            author_name = author.strip()
-            print(author_name)
+        # list인지 str인지
+        if isinstance(authors, list):
+            for author in authors:
+                author_name = author.strip()
+                send_data_to_kafka({'author': author_name})
+        elif isinstance(authors, str):
+            author_name = authors.strip()
             send_data_to_kafka({'author': author_name})
+
 
 # Kafka producer 객체
 producer = KafkaProducer(bootstrap_servers=KAFKA_SERVER, value_serializer=lambda x: json.dumps(x).encode('utf-8'))
@@ -58,13 +66,11 @@ try:
         if response.status_code == 200:
             process_api_response(response)
 
-            # Pagination 처리를 위한 추가 작업
             content = response.content
             dict_type = xmltodict.parse(content)
             metadata = dict_type['MetaData']
             total_items = int(metadata['outputData']['result']['total'])
             max_pages = math.ceil(total_items / API_DISPLAY_COUNT)
-            print(max_pages)
 
             # 각 페이지에 대해 API 요청 반복
             for page in range(2, max_pages + 1):
@@ -73,6 +79,7 @@ try:
                     process_api_response(response)
                 else:
                     print(f"API request failed for page {page}.")
+                    break
         else:
             print("API request failed.")
 except requests.exceptions.RequestException as e:
