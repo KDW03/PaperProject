@@ -1,19 +1,20 @@
 import json
 import math
+import config
 
 import requests
 import xmltodict
 from kafka import KafkaProducer
 
 # 카프카 서버 ip
-KAFKA_SERVER = '10.100.54.43:9092'
+KAFKA_SERVER = config.KAFKA_SERVER
 # 카프카 토픽 name
-KAFKA_TOPIC = 'testApi4'
+KAFKA_TOPIC = config.KAFKA_TOPIC
 
 # API 관련 상수
 API_BASE_URL = "https://open.kci.go.kr/po/openapi/openApiSearch.kci"
 API_CODE = "articleSearch"
-API_KEY = "31446398"
+API_KEY = config.PAPER_API_KEY
 API_DISPLAY_COUNT = 100
 
 # 논문 데이터 API 주소 생성 함수
@@ -58,7 +59,7 @@ producer = KafkaProducer(bootstrap_servers=KAFKA_SERVER, value_serializer=lambda
 
 try:
     # Title 배열
-    titles = ['컴퓨터', '데이터', '인공지능']
+    titles = config.keywords
 
     for title in titles:
         # 최초의 API 요청을 보내서 전체 아이템 개수를 얻음

@@ -1,25 +1,27 @@
 import json
 import math
+import config
+
 
 import requests
 import xmltodict
 from kafka import KafkaProducer
 
 # 카프카 서버 IP
-KAFKA_SERVER = '10.100.54.43:9092'
+KAFKA_SERVER = config.KAFKA_SERVER
+
 # 카프카 토픽 이름
-KAFKA_TOPIC = 'testApi4'
+KAFKA_TOPIC = config.KAFKA_TOPIC
 
 # API 관련 상수
 NUM_OF_ROWS = 500
 # 검색년도범위(0~10)
 YEAR = 10
-SERVICE_KEY = "74wL8jNPYJwrrGQBqc3rVwYgs8vdzgvSZAA=Unlb2kQ="
+SERVICE_KEY = config.PATENT_SERVICE_KEY
 
 # 특허 데이터 API 주소 생성 함수
 def generate_api_url(keyword, pageNo):
     return f"http://plus.kipris.or.kr/kipo-api/kipi/patUtiModInfoSearchSevice/getWordSearch?word={keyword}&numOfRows={NUM_OF_ROWS}&pageNo={pageNo}&year={YEAR}&ServiceKey={SERVICE_KEY}"
-
 
 
 # process_api_response로 처리한 데이터를 카프카에 전송하는 함수
@@ -51,7 +53,7 @@ producer = KafkaProducer(bootstrap_servers=KAFKA_SERVER, value_serializer=lambda
 
 
 try:
-    keywords = ['컴퓨터', '데이터', '인공지능']
+    keywords = config.keywords
 
     for keyword in keywords:
         # 최초의 API 요청을 보내서 전체 아이템 개수를 얻음
